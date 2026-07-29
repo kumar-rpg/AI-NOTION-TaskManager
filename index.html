@@ -121,6 +121,13 @@
   }
   .tab.active { background: var(--navy); border-color: var(--navy); color: #ffffff; }
 
+  .sortRow { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+  .sortRow select {
+    flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font-size: 14px;
+  }
+  .sortRow .iconBtn { background: var(--card); border: 1px solid var(--border); font-size: 18px; }
+
   .task {
     background: var(--card); border-radius: 14px; padding: 14px 16px;
     margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
@@ -206,6 +213,15 @@
       <button class="tab active" data-view="active">Active</button>
       <button class="tab" data-view="completed">Completed</button>
     </div>
+    <div class="sortRow">
+      <select id="sortField" title="Sort by">
+        <option value="created">Created</option>
+        <option value="name">Task Name</option>
+        <option value="start">Start Date</option>
+        <option value="end">End Date</option>
+      </select>
+      <button class="iconBtn" id="sortDirBtn" title="Toggle ascending/descending">↓</button>
+    </div>
     <div id="status"></div>
     <div id="taskList"></div>
   </main>
@@ -257,10 +273,14 @@
   const startDateInput = document.getElementById('startDateInput');
   const endDateInput = document.getElementById('endDateInput');
   const toast = document.getElementById('toast');
+  const sortFieldSelect = document.getElementById('sortField');
+  const sortDirBtn = document.getElementById('sortDirBtn');
 
   let editingId = null;
   let allTasks = [];
   let currentView = 'active';
+  let sortField = 'created';
+  let sortDir = 'desc';
 
   function effectiveTheme() {
     const explicit = document.documentElement.getAttribute('data-theme');
@@ -359,6 +379,30 @@
     return '';
   }
 
+  function sortValue(t) {
+    switch (sortField) {
+      case 'name': return (t.taskName || '').toLowerCase();
+      case 'start': return t.startDate;
+      case 'end': return t.endDate;
+      default: return t.createdTime;
+    }
+  }
+
+  function sortTasks(tasks) {
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...tasks].sort((a, b) => {
+      const va = sortValue(a);
+      const vb = sortValue(b);
+      // Tasks missing the sort field's value always sink to the bottom.
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+  }
+
   function render() {
     const activeCount = allTasks.filter(t => t.status !== 'COMPLETED').length;
     const completedCount = allTasks.filter(t => t.status === 'COMPLETED').length;
@@ -368,7 +412,7 @@
     const filtered = allTasks.filter(t =>
       currentView === 'completed' ? t.status === 'COMPLETED' : t.status !== 'COMPLETED'
     );
-    renderTasks(filtered);
+    renderTasks(sortTasks(filtered));
   }
 
   async function loadTasks() {
@@ -471,6 +515,18 @@
   });
   pinInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('pinSubmit').click();
+  });
+
+  sortFieldSelect.addEventListener('change', () => {
+    sortField = sortFieldSelect.value;
+    render();
+  });
+
+  sortDirBtn.addEventListener('click', () => {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    sortDirBtn.textContent = sortDir === 'asc' ? '↑' : '↓';
+    sortDirBtn.title = sortDir === 'asc' ? 'Ascending (click for descending)' : 'Descending (click for ascending)';
+    render();
   });
 
   document.querySelectorAll('.tab').forEach(btn => {
