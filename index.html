@@ -217,10 +217,10 @@
       <select id="sortField" title="Sort by">
         <option value="created">Created</option>
         <option value="name">Task Name</option>
-        <option value="start">Start Date</option>
+        <option value="start" selected>Start Date</option>
         <option value="end">End Date</option>
       </select>
-      <button class="iconBtn" id="sortDirBtn" title="Toggle ascending/descending">↓</button>
+      <button class="iconBtn" id="sortDirBtn" title="Ascending (click for descending)">↑</button>
     </div>
     <div id="status"></div>
     <div id="taskList"></div>
@@ -279,8 +279,8 @@
   let editingId = null;
   let allTasks = [];
   let currentView = 'active';
-  let sortField = 'created';
-  let sortDir = 'desc';
+  let sortField = 'start';
+  let sortDir = 'asc';
 
   function effectiveTheme() {
     const explicit = document.documentElement.getAttribute('data-theme');
