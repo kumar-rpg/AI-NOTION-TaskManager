@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Work Tasks</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f2efe6;
+    --card: #ffffff;
+    --text: #1c1c1e;
+    --heading: #1c3455;
+    --muted: #6b7280;
+    --border: #e4ddd0;
+    --navy: #1c3455;
+    --navy-dark: #142642;
+    --accent: #1c3455;
+    --green: #4caf7d;
+    --danger: #b0413e;
+    --ongoing-bg: #fdecd2;
+    --ongoing-text: #92600a;
+    --completed-bg: #e1f2e8;
+    --completed-text: #1f7a4d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1c2e;
+      --card: #16273f;
+      --text: #f2f2f7;
+      --heading: #ffffff;
+      --muted: #9aa7b8;
+      --border: #26374f;
+      --navy: #2c4a75;
+      --navy-dark: #1c3455;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1c2e;
+    --card: #16273f;
+    --text: #f2f2f7;
+    --heading: #ffffff;
+    --muted: #9aa7b8;
+    --border: #26374f;
+    --navy: #2c4a75;
+    --navy-dark: #1c3455;
+  }
+  :root[data-theme="light"] {
+    --bg: #f2efe6;
+    --card: #ffffff;
+    --text: #1c1c1e;
+    --heading: #1c3455;
+    --muted: #6b7280;
+    --border: #e4ddd0;
+    --navy: #1c3455;
+    --navy-dark: #142642;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  h1, h2 { font-family: Georgia, "Times New Roman", Times, serif; color: var(--heading); }
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  .themeToggle {
+    width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font-size: 17px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  #pinScreen .themeToggle { position: absolute; top: 16px; left: 16px; }
+  header .themeToggle {
+    background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.3); color: #ffffff;
+  }
+
+  /* PIN screen */
+  #pinScreen { position: relative; align-items: center; justify-content: center; padding: 24px; }
+  .pinBox { width: 100%; max-width: 320px; text-align: center; }
+  .pinBox h1 { font-size: 20px; margin-bottom: 4px; }
+  .pinBox p { color: var(--muted); font-size: 14px; margin-top: 0; }
+  #pinInput {
+    width: 100%; font-size: 22px; text-align: center; letter-spacing: 4px;
+    padding: 14px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); margin: 16px 0 8px;
+  }
+  #pinError { color: var(--danger); font-size: 13px; min-height: 18px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    border: none; border-radius: 12px; padding: 14px 20px;
+    font-size: 16px; font-weight: 600; cursor: pointer;
+    background: var(--accent); color: white; width: 100%;
+  }
+  .btn:active { opacity: 0.8; }
+  .btn.secondary { background: var(--border); color: var(--text); }
+  .btn.danger { background: var(--danger); }
+
+  /* Main app */
+  header {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--navy); padding: 20px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--navy-dark);
+  }
+  header h1 { font-size: 21px; margin: 0; color: #ffffff; }
+  header button.icon {
+    background: none; border: none; color: rgba(255,255,255,0.85);
+    font-size: 14px; font-weight: 600; padding: 6px 4px; cursor: pointer;
+  }
+
+  main { flex: 1; padding: 12px 16px 100px; max-width: 640px; width: 100%; margin: 0 auto; }
+  #status { text-align: center; color: var(--muted); font-size: 14px; padding: 24px 0; }
+
+  .task {
+    background: var(--card); border-radius: 14px; padding: 14px 16px;
+    margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
+    border: 1px solid var(--border);
+  }
+  .task .info { flex: 1; min-width: 0; }
+  .task .name { font-size: 16px; font-weight: 500; word-break: break-word; }
+  .badge {
+    display: inline-block; margin-top: 6px; font-size: 12px; font-weight: 600;
+    padding: 3px 9px; border-radius: 100px;
+  }
+  .badge.ongoing { background: var(--ongoing-bg); color: var(--ongoing-text); }
+  .badge.completed { background: var(--completed-bg); color: var(--completed-text); }
+  .task .dates { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .task .actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .iconBtn {
+    width: 36px; height: 36px; border-radius: 10px; border: none;
+    background: var(--border); color: var(--text); font-size: 16px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .iconBtn.del { background: rgba(176,65,62,0.12); color: var(--danger); }
+
+  .fab {
+    position: fixed; right: 20px; bottom: 24px; width: 56px; height: 56px;
+    border-radius: 50%; background: var(--accent); color: white; border: none;
+    font-size: 28px; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; z-index: 10;
+  }
+
+  /* Modal */
+  #overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+    display: none; align-items: flex-end; z-index: 20;
+  }
+  #overlay.active { display: flex; }
+  .sheet {
+    background: var(--card); width: 100%; border-radius: 20px 20px 0 0;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+    max-width: 640px; margin: 0 auto;
+  }
+  .sheet h2 { margin: 0 0 16px; font-size: 18px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .field input[type=text], .field input[type=date], .field select {
+    width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: 16px;
+  }
+  .fieldRow { display: flex; gap: 12px; }
+  .fieldRow .field { flex: 1; }
+  .sheetActions { display: flex; gap: 10px; margin-top: 18px; }
+  .sheetActions .btn { width: auto; flex: 1; }
+  .toast {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 100px;
+    font-size: 14px; z-index: 30; display: none;
+  }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<section id="pinScreen" class="screen active">
+  <button class="themeToggle" id="themeTogglePin" title="Toggle theme">🌙</button>
+  <div class="pinBox">
+    <h1>📋 Work Tasks</h1>
+    <p>Enter PIN to continue</p>
+    <input id="pinInput" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN">
+    <div id="pinError"></div>
+    <button class="btn" id="pinSubmit">Unlock</button>
+  </div>
+</section>
+
+<section id="appScreen" class="screen">
+  <header>
+    <button class="themeToggle" id="themeToggleHeader" title="Toggle theme">🌙</button>
+    <h1>📋 Work Tasks</h1>
+    <button class="icon" id="lockBtn">Lock</button>
+  </header>
+  <main>
+    <div id="status"></div>
+    <div id="taskList"></div>
+  </main>
+  <button class="fab" id="addBtn">+</button>
+</section>
+
+<div id="overlay">
+  <div class="sheet">
+    <h2 id="sheetTitle">Add Task</h2>
+    <div class="field">
+      <label for="taskNameInput">Task Name</label>
+      <input type="text" id="taskNameInput" placeholder="e.g. Write report">
+    </div>
+    <div class="field">
+      <label for="statusInput">Status</label>
+      <select id="statusInput">
+        <option value="ON-GOING">ON-GOING</option>
+        <option value="COMPLETED">COMPLETED</option>
+      </select>
+    </div>
+    <div class="fieldRow">
+      <div class="field">
+        <label for="startDateInput">Start Date</label>
+        <input type="date" id="startDateInput">
+      </div>
+      <div class="field">
+        <label for="endDateInput">End Date</label>
+        <input type="date" id="endDateInput">
+      </div>
+    </div>
+    <div class="sheetActions">
+      <button class="btn secondary" id="cancelBtn">Cancel</button>
+      <button class="btn" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const pinScreen = document.getElementById('pinScreen');
+  const appScreen = document.getElementById('appScreen');
+  const pinInput = document.getElementById('pinInput');
+  const pinError = document.getElementById('pinError');
+  const statusEl = document.getElementById('status');
+  const taskList = document.getElementById('taskList');
+  const overlay = document.getElementById('overlay');
+  const sheetTitle = document.getElementById('sheetTitle');
+  const taskNameInput = document.getElementById('taskNameInput');
+  const statusInput = document.getElementById('statusInput');
+  const startDateInput = document.getElementById('startDateInput');
+  const endDateInput = document.getElementById('endDateInput');
+  const toast = document.getElementById('toast');
+
+  let editingId = null;
+
+  function effectiveTheme() {
+    const explicit = document.documentElement.getAttribute('data-theme');
+    if (explicit) return explicit;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function updateThemeIcons() {
+    const icon = effectiveTheme() === 'dark' ? '☀️' : '🌙';
+    document.querySelectorAll('.themeToggle').forEach(btn => btn.textContent = icon);
+  }
+
+  function applyTheme(theme) {
+    if (theme === 'light' || theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', theme);
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    updateThemeIcons();
+  }
+
+  function toggleTheme() {
+    const next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+  }
+
+  document.querySelectorAll('.themeToggle').forEach(btn => btn.addEventListener('click', toggleTheme));
+  applyTheme(localStorage.getItem('theme'));
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  function getPin() { return localStorage.getItem('appPin') || ''; }
+
+  async function api(method, path, body) {
+    const resp = await fetch('/api' + path, {
+      method,
+      headers: { 'Content-Type': 'application/json', 'x-app-pin': getPin() },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (resp.status === 401) throw { unauthorized: true };
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  }
+
+  function renderTasks(tasks) {
+    taskList.innerHTML = '';
+    if (!tasks.length) {
+      statusEl.textContent = 'No tasks yet. Tap + to add one.';
+      return;
+    }
+    statusEl.textContent = '';
+    for (const t of tasks) {
+      const div = document.createElement('div');
+      div.className = 'task';
+      const badgeClass = t.status === 'COMPLETED' ? 'completed' : 'ongoing';
+      const dateText = dateRangeText(t);
+      div.innerHTML = `
+        <div class="info">
+          <div class="name">${escapeHtml(t.taskName)}</div>
+          <span class="badge ${badgeClass}">${t.status || 'NO STATUS'}</span>
+          ${dateText ? `<div class="dates">${dateText}</div>` : ''}
+        </div>
+        <div class="actions">
+          <button class="iconBtn editBtn" title="Edit">✎</button>
+          <button class="iconBtn del delBtn" title="Delete">🗑</button>
+        </div>
+      `;
+      div.querySelector('.editBtn').addEventListener('click', () => openEdit(t));
+      div.querySelector('.delBtn').addEventListener('click', () => deleteTask(t));
+      taskList.appendChild(div);
+    }
+  }
+
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function formatDate(d) {
+    return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function dateRangeText(t) {
+    if (t.startDate && t.endDate) return `${formatDate(t.startDate)} → ${formatDate(t.endDate)}`;
+    if (t.startDate) return `Starts ${formatDate(t.startDate)}`;
+    if (t.endDate) return `Due ${formatDate(t.endDate)}`;
+    return '';
+  }
+
+  async function loadTasks() {
+    statusEl.textContent = 'Loading…';
+    try {
+      const data = await api('GET', '/tasks');
+      renderTasks(data.tasks);
+    } catch (err) {
+      if (err.unauthorized) return lockOut('Session expired. Re-enter PIN.');
+      statusEl.textContent = 'Error loading tasks: ' + err.message;
+    }
+  }
+
+  function openAdd() {
+    editingId = null;
+    sheetTitle.textContent = 'Add Task';
+    taskNameInput.value = '';
+    statusInput.value = 'ON-GOING';
+    startDateInput.value = '';
+    endDateInput.value = '';
+    overlay.classList.add('active');
+    setTimeout(() => taskNameInput.focus(), 50);
+  }
+
+  function openEdit(task) {
+    editingId = task.id;
+    sheetTitle.textContent = 'Edit Task';
+    taskNameInput.value = task.taskName;
+    statusInput.value = task.status || 'ON-GOING';
+    startDateInput.value = task.startDate || '';
+    endDateInput.value = task.endDate || '';
+    overlay.classList.add('active');
+  }
+
+  function closeSheet() { overlay.classList.remove('active'); }
+
+  async function saveTask() {
+    const taskName = taskNameInput.value.trim();
+    const status = statusInput.value;
+    const startDate = startDateInput.value || null;
+    const endDate = endDateInput.value || null;
+    if (!taskName) { showToast('Task name is required'); return; }
+    if (startDate && endDate && endDate < startDate) { showToast('End date must be after start date'); return; }
+    try {
+      if (editingId) {
+        await api('PATCH', '/tasks', { id: editingId, taskName, status, startDate, endDate });
+        showToast('Task updated');
+      } else {
+        await api('POST', '/tasks', { taskName, status, startDate, endDate });
+        showToast('Task added');
+      }
+      closeSheet();
+      loadTasks();
+    } catch (err) {
+      if (err.unauthorized) return lockOut('Session expired. Re-enter PIN.');
+      showToast('Error: ' + err.message);
+    }
+  }
+
+  async function deleteTask(task) {
+    if (!confirm(`Delete "${task.taskName}"?`)) return;
+    try {
+      await api('DELETE', '/tasks?id=' + encodeURIComponent(task.id));
+      showToast('Task deleted');
+      loadTasks();
+    } catch (err) {
+      if (err.unauthorized) return lockOut('Session expired. Re-enter PIN.');
+      showToast('Error: ' + err.message);
+    }
+  }
+
+  function lockOut(message) {
+    localStorage.removeItem('appPin');
+    appScreen.classList.remove('active');
+    pinScreen.classList.add('active');
+    pinError.textContent = message || '';
+    pinInput.value = '';
+  }
+
+  async function tryPin(pin) {
+    localStorage.setItem('appPin', pin);
+    try {
+      const data = await api('GET', '/tasks');
+      pinScreen.classList.remove('active');
+      appScreen.classList.add('active');
+      renderTasks(data.tasks);
+    } catch (err) {
+      localStorage.removeItem('appPin');
+      pinError.textContent = 'Incorrect PIN. Try again.';
+    }
+  }
+
+  document.getElementById('pinSubmit').addEventListener('click', () => {
+    const pin = pinInput.value.trim();
+    if (!pin) return;
+    pinError.textContent = '';
+    tryPin(pin);
+  });
+  pinInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('pinSubmit').click();
+  });
+
+  document.getElementById('lockBtn').addEventListener('click', () => lockOut());
+  document.getElementById('addBtn').addEventListener('click', openAdd);
+  document.getElementById('cancelBtn').addEventListener('click', closeSheet);
+  document.getElementById('saveBtn').addEventListener('click', saveTask);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeSheet(); });
+
+  // Auto-unlock if PIN already stored
+  const stored = getPin();
+  if (stored) tryPin(stored);
+</script>
+</body>
+</html>
