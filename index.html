@@ -297,7 +297,9 @@
     setTimeout(() => toast.classList.remove('show'), 2200);
   }
 
-  function getPin() { return localStorage.getItem('appPin') || ''; }
+  // Kept only in memory (not persisted) so the PIN screen is enforced on every launch.
+  let sessionPin = '';
+  function getPin() { return sessionPin; }
 
   async function api(method, path, body) {
     const resp = await fetch('/api' + path, {
@@ -440,7 +442,7 @@
   }
 
   function lockOut(message) {
-    localStorage.removeItem('appPin');
+    sessionPin = '';
     appScreen.classList.remove('active');
     pinScreen.classList.add('active');
     pinError.textContent = message || '';
@@ -448,7 +450,7 @@
   }
 
   async function tryPin(pin) {
-    localStorage.setItem('appPin', pin);
+    sessionPin = pin;
     try {
       const data = await api('GET', '/tasks');
       pinScreen.classList.remove('active');
@@ -456,7 +458,7 @@
       allTasks = data.tasks;
       render();
     } catch (err) {
-      localStorage.removeItem('appPin');
+      sessionPin = '';
       pinError.textContent = 'Incorrect PIN. Try again.';
     }
   }
@@ -485,9 +487,8 @@
   document.getElementById('saveBtn').addEventListener('click', saveTask);
   overlay.addEventListener('click', e => { if (e.target === overlay) closeSheet(); });
 
-  // Auto-unlock if PIN already stored
-  const stored = getPin();
-  if (stored) tryPin(stored);
+  // No auto-unlock: the PIN screen is always shown on launch, and the PIN
+  // is kept only in memory (sessionPin) for the lifetime of this page.
 </script>
 </body>
 </html>
