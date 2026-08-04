@@ -153,6 +153,7 @@
     display: flex; align-items: center; justify-content: center; cursor: pointer;
   }
   .iconBtn.del { background: rgba(176,65,62,0.12); color: var(--danger); }
+  .iconBtn.complete { background: var(--completed-bg); color: var(--completed-text); font-weight: 700; }
 
   .fab {
     position: fixed; right: 20px; bottom: 24px; width: 56px; height: 56px;
@@ -366,10 +367,13 @@
           ${dateText ? `<div class="dates">${dateText}</div>` : ''}
         </div>
         <div class="actions">
+          ${t.status !== 'COMPLETED' ? '<button class="iconBtn complete completeBtn" title="Mark completed">✓</button>' : ''}
           <button class="iconBtn editBtn" title="Edit">✎</button>
           <button class="iconBtn del delBtn" title="Delete">🗑</button>
         </div>
       `;
+      const completeBtn = div.querySelector('.completeBtn');
+      if (completeBtn) completeBtn.addEventListener('click', () => completeTask(t));
       div.querySelector('.editBtn').addEventListener('click', () => openEdit(t));
       div.querySelector('.delBtn').addEventListener('click', () => deleteTask(t));
       taskList.appendChild(div);
@@ -488,6 +492,17 @@
         showToast('Task added');
       }
       closeSheet();
+      loadTasks();
+    } catch (err) {
+      if (err.unauthorized) return lockOut('Session expired. Re-enter PIN.');
+      showToast('Error: ' + err.message);
+    }
+  }
+
+  async function completeTask(task) {
+    try {
+      await api('PATCH', '/tasks', { id: task.id, status: 'COMPLETED' });
+      showToast('Marked as completed');
       loadTasks();
     } catch (err) {
       if (err.unauthorized) return lockOut('Session expired. Re-enter PIN.');
